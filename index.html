@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stroke Risk Estimator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6f7;--surface:#fff;--ink:#0f2a36;--muted:#58707b;--line:#d8e3e7;--brand:#0e7c86;--brand-ink:#fff;--low:#16825d;--mod:#b97a0a;--high:#c2412d;--track:#e3ecef;--field:#f8fbfc;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1a21;--surface:#12262f;--ink:#e6f0f3;--muted:#93aab4;--line:#24404b;--brand:#3cc0cc;--brand-ink:#06242a;--low:#4cc79b;--mod:#e5aa3a;--high:#ef7a67;--track:#1e3944;--field:#0f212a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1a21;--surface:#12262f;--ink:#e6f0f3;--muted:#93aab4;--line:#24404b;--brand:#3cc0cc;--brand-ink:#06242a;--low:#4cc79b;--mod:#e5aa3a;--high:#ef7a67;--track:#1e3944;--field:#0f212a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 20px 56px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:11px;background:var(--brand);display:grid;place-items:center}
+.mark svg{width:24px;height:24px;stroke:var(--brand-ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-.01em}
+.sub{margin:0;color:var(--muted);font-size:.9rem}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px}
+fieldset{border:0;padding:0;margin:0 0 22px}
+legend{font-weight:600;font-size:1rem;padding:0;margin-bottom:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.row{grid-template-columns:1fr}}
+label.f{display:block;font-size:.88rem;font-weight:500;margin-bottom:6px}
+.hint{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+input[type=number],select{width:100%;height:46px;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:10px;padding:0 12px;font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible,.seg input:focus-visible+span{outline:3px solid var(--brand);outline-offset:2px}
+.field{margin-bottom:14px}
+.err{color:var(--high);font-size:.8rem;min-height:1.1em;margin-top:4px}
+.seg{display:flex;gap:8px}
+.seg label{flex:1;position:relative}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg span{display:block;text-align:center;padding:11px 8px;border:1px solid var(--line);border-radius:10px;background:var(--field);font-size:.92rem;font-weight:500}
+.seg input:checked+span{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.bmi-calc{display:flex;gap:8px;align-items:end}
+.bmi-calc>div{flex:1}
+.link{background:none;border:0;color:var(--brand);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 0}
+.actions{display:flex;gap:10px;margin-top:6px}
+.btn{height:48px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);padding:0 20px}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);flex:1}
+.result{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
+.empty{color:var(--muted);text-align:center;padding:36px 8px}
+.gauge{width:100%;max-width:340px;margin:0 auto;display:block}
+.pct{font-size:2.6rem;font-weight:700;letter-spacing:-.02em;text-align:center;line-height:1;margin-top:-6px}
+.band{display:block;text-align:center;font-weight:600;margin:8px 0 4px;font-size:1.05rem}
+.note{color:var(--muted);font-size:.85rem;text-align:center;margin:0 auto 18px;max-width:34ch}
+h2{font-size:.95rem;margin:18px 0 10px}
+.drv{display:grid;grid-template-columns:minmax(0,1fr) 120px 54px;gap:10px;align-items:center;font-size:.86rem;padding:5px 0}
+.bar{height:8px;border-radius:4px;background:var(--track);position:relative}
+.bar i{position:absolute;top:0;bottom:0;border-radius:4px}
+.bar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted)}
+.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.disc{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--field);border:1px solid var(--line);font-size:.8rem;color:var(--muted)}
+#arc{transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+#needle{transition:transform .8s cubic-bezier(.2,.8,.2,1);transform-origin:170px 160px}
+@media (prefers-reduced-motion:reduce){#arc,#needle{transition:none}}
+.examples{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--line)}.examples .lbl{font-size:.88rem;font-weight:500;color:var(--muted);margin-right:2px}.btn.ex{height:40px;padding:0 16px;font-size:.9rem}.btn.ex.avg{border-color:var(--mod);color:var(--mod)}.btn.ex.hi{border-color:var(--high);color:var(--high)}
+.theme{height:40px;width:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-size:1.1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></div>
+      <div><h1>Stroke Risk Estimator</h1><p class="sub">Machine-learning screening aid · logistic regression model</p></div>
+    </div>
+    <button class="theme" id="theme" type="button" aria-label="Switch between light and dark theme">◐</button>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="form" novalidate>
+      <div class="examples"><span class="lbl">Try an example</span><button class="btn ex avg" type="button" data-ex="avg">Average risk</button><button class="btn ex hi" type="button" data-ex="high">High risk</button></div>
+      <fieldset>
+        <legend>Patient profile</legend>
+        <div class="row">
+          <div class="field"><label class="f" for="age">Age <span class="hint">Years</span></label><input id="age" type="number" inputmode="decimal" min="1" max="120" step="1" placeholder="e.g. 62"><div class="err" id="e-age"></div></div>
+          <div class="field"><span class="f" style="display:block;font-size:.88rem;font-weight:500;margin-bottom:6px">Gender</span>
+            <div class="seg" role="radiogroup" aria-label="Gender"><label><input type="radio" name="gender" value="1" checked><span>Male</span></label><label><input type="radio" name="gender" value="0"><span>Female</span></label></div></div>
+        </div>
+        <div class="row">
+          <div class="field"><span class="f" style="display:block;font-size:.88rem;font-weight:500;margin-bottom:6px">Ever married</span>
+            <div class="seg" role="radiogroup" aria-label="Ever married"><label><input type="radio" name="married" value="1" checked><span>Yes</span></label><label><input type="radio" name="married" value="0"><span>No</span></label></div></div>
+          <div class="field"><span class="f" style="display:block;font-size:.88rem;font-weight:500;margin-bottom:6px">Residence</span>
+            <div class="seg" role="radiogroup" aria-label="Residence type"><label><input type="radio" name="urban" value="1" checked><span>Urban</span></label><label><input type="radio" name="urban" value="0"><span>Rural</span></label></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Medical history</legend>
+        <div class="row">
+          <div class="field"><span class="f" style="display:block;font-size:.88rem;font-weight:500;margin-bottom:6px">Hypertension</span>
+            <div class="seg" role="radiogroup" aria-label="Hypertension"><label><input type="radio" name="hyp" value="1"><span>Yes</span></label><label><input type="radio" name="hyp" value="0" checked><span>No</span></label></div></div>
+          <div class="field"><span class="f" style="display:block;font-size:.88rem;font-weight:500;margin-bottom:6px">Heart disease</span>
+            <div class="seg" role="radiogroup" aria-label="Heart disease"><label><input type="radio" name="heart" value="1"><span>Yes</span></label><label><input type="radio" name="heart" value="0" checked><span>No</span></label></div></div>
+        </div>
+        <div class="row">
+          <div class="field"><label class="f" for="glucose">Average glucose level <span class="hint">mg/dL</span></label><input id="glucose" type="number" inputmode="decimal" min="40" max="400" step="0.1" placeholder="e.g. 105"><div class="err" id="e-glucose"></div></div>
+          <div class="field"><label class="f" for="bmi">BMI <span class="hint">kg/m²</span></label><input id="bmi" type="number" inputmode="decimal" min="10" max="70" step="0.1" placeholder="e.g. 27.5"><div class="err" id="e-bmi"></div></div>
+        </div>
+        <button class="link" type="button" id="bmiToggle" aria-expanded="false">Calculate BMI from height and weight</button>
+        <div class="bmi-calc" id="bmiBox" hidden>
+          <div><label class="f" for="h">Height <span class="hint">cm</span></label><input id="h" type="number" inputmode="decimal" min="80" max="230"></div>
+          <div><label class="f" for="w">Weight <span class="hint">kg</span></label><input id="w" type="number" inputmode="decimal" min="20" max="300"></div>
+          <button class="btn" type="button" id="bmiApply" style="height:46px">Use BMI</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Lifestyle</legend>
+        <div class="row">
+          <div class="field"><label class="f" for="work">Work type</label>
+            <select id="work"><option value="Private">Private sector</option><option value="Self-employed">Self-employed</option><option value="Govt_job">Government job</option><option value="Never_worked">Never worked</option><option value="children">Child</option></select></div>
+          <div class="field"><label class="f" for="smoke">Smoking status</label>
+            <select id="smoke"><option value="never smoked">Never smoked</option><option value="formerly smoked">Formerly smoked</option><option value="smokes">Currently smokes</option><option value="Unknown">Unknown</option></select></div>
+        </div>
+      </fieldset>
+
+      <div class="actions"><button class="btn primary" type="submit">Estimate risk</button><button class="btn" type="button" id="reset">Reset</button></div>
+    </form>
+
+    <aside class="panel result" aria-live="polite">
+      <div class="empty" id="empty">Enter the patient details and select <b>Estimate risk</b> to see the result.</div>
+      <div id="out" hidden>
+        <svg class="gauge" viewBox="0 0 340 190" role="img" aria-label="Risk gauge">
+          <path d="M 20 160 A 150 150 0 0 1 320 160" fill="none" stroke="var(--track)" stroke-width="22" stroke-linecap="round"/>
+          <path id="arc" d="M 20 160 A 150 150 0 0 1 320 160" fill="none" stroke="var(--low)" stroke-width="22" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <g id="needle"><line x1="170" y1="160" x2="170" y2="44" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><circle cx="170" cy="160" r="8" fill="var(--ink)"/></g>
+        </svg>
+        <div class="pct" id="pct">0%</div>
+        <span class="band" id="band">Low risk</span>
+        <p class="note" id="note"></p>
+        <h2>What moved this score</h2>
+        <div id="drivers"></div>
+        <div class="disc"><b>Not a diagnosis.</b> This tool estimates risk from a statistical model and does not replace a clinician’s assessment. If you notice sudden weakness, face drooping or speech difficulty, call emergency services immediately.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+// Model: sklearn LogisticRegression (stroke_model.pkl) — coefficients in the training feature order.
+const FEATURES=['age','hypertension','heart_disease','avg_glucose_level','bmi','gender_Male','ever_married_Yes','work_type_Never_worked','work_type_Private','work_type_Self-employed','work_type_children','Residence_type_Urban','smoking_status_formerly smoked','smoking_status_never smoked','smoking_status_smokes'];
+const COEF=[1.88839025,0.18564486,0.03372772,0.2110969,0.0609587,-0.06673859,-0.07877103,-0.18732563,0.0137914,-0.07618385,0.33747236,0.08810743,0.03699288,-0.11058112,0.10610915];
+const INTERCEPT=-1.17703251;
+// Scaling for age, glucose and BMI (StandardScaler). Replace with the exact values from your training scaler if they differ.
+const SCALE={age:{mean:43.23,std:22.61},avg_glucose_level:{mean:106.15,std:45.28},bmi:{mean:28.89,std:7.70}};
+const LABELS={age:'Age',hypertension:'Hypertension',heart_disease:'Heart disease',avg_glucose_level:'Glucose level',bmi:'BMI',gender_Male:'Male gender','ever_married_Yes':'Ever married','work_type_Never_worked':'Never worked','work_type_Private':'Private sector job','work_type_Self-employed':'Self-employed','work_type_children':'Child','Residence_type_Urban':'Urban residence','smoking_status_formerly smoked':'Former smoker','smoking_status_never smoked':'Never smoked','smoking_status_smokes':'Current smoker'};
+const $=id=>document.getElementById(id);
+const radio=n=>+document.querySelector('input[name="'+n+'"]:checked').value;
+const RANGES={age:[1,120,'Age'],glucose:[40,400,'Glucose'],bmi:[10,70,'BMI']};
+
+function validate(){
+  let ok=true;
+  for(const k of Object.keys(RANGES)){
+    const [lo,hi,name]=RANGES[k],v=parseFloat($(k).value),e=$('e-'+k);
+    if(isNaN(v)){e.textContent=name+' is required.';ok=false}
+    else if(v<lo||v>hi){e.textContent=name+' must be between '+lo+' and '+hi+'.';ok=false}
+    else e.textContent='';
+  }
+  return ok;
+}
+function build(){
+  const x={};
+  FEATURES.forEach(f=>x[f]=0);
+  x.age=(parseFloat($('age').value)-SCALE.age.mean)/SCALE.age.std;
+  x.avg_glucose_level=(parseFloat($('glucose').value)-SCALE.avg_glucose_level.mean)/SCALE.avg_glucose_level.std;
+  x.bmi=(parseFloat($('bmi').value)-SCALE.bmi.mean)/SCALE.bmi.std;
+  x.hypertension=radio('hyp');x.heart_disease=radio('heart');
+  x.gender_Male=radio('gender');x.ever_married_Yes=radio('married');x.Residence_type_Urban=radio('urban');
+  const w='work_type_'+$('work').value;if(w in x)x[w]=1;
+  const s='smoking_status_'+$('smoke').value;if(s in x)x[s]=1;
+  return x;
+}
+function predict(x){
+  const parts=FEATURES.map((f,i)=>({f,c:COEF[i]*x[f]}));
+  const z=parts.reduce((a,p)=>a+p.c,INTERCEPT);
+  return {p:1/(1+Math.exp(-z)),parts};
+}
+function bandOf(p){
+  if(p<0.30)return {t:'Low risk',c:'var(--low)',n:'The model places this profile in its lower risk range.'};
+  if(p<0.60)return {t:'Moderate risk',c:'var(--mod)',n:'Several factors raise the score. Consider a routine check-up.'};
+  return {t:'High risk',c:'var(--high)',n:'The model flags this profile. A clinical review is recommended.'};
+}
+function render(r){
+  const pc=Math.round(r.p*1000)/10,b=bandOf(r.p);
+  $('empty').hidden=true;$('out').hidden=false;
+  $('pct').textContent=pc.toFixed(1)+'%';
+  $('band').textContent=b.t;$('band').style.color=b.c;$('note').textContent=b.n;
+  const arc=$('arc');arc.style.stroke=b.c;arc.style.strokeDashoffset=100-pc;
+  $('needle').style.transform='rotate('+(-90+1.8*pc)+'deg)';
+  const top=r.parts.filter(p=>Math.abs(p.c)>0.005).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c)).slice(0,5);
+  const max=Math.max(...top.map(p=>Math.abs(p.c)),0.01);
+  $('drivers').innerHTML=top.map(p=>{
+    const w=Math.min(50,Math.abs(p.c)/max*50),pos=p.c>=0;
+    return '<div class="drv"><span>'+LABELS[p.f]+'</span><div class="bar"><i style="background:'+(pos?'var(--high)':'var(--low)')+';'+(pos?'left:50%;':'right:50%;')+'width:'+w+'%"></i></div><span class="val">'+(pos?'+':'−')+Math.abs(p.c).toFixed(2)+'</span></div>';
+  }).join('')+'<p class="sub" style="margin-top:8px;font-size:.78rem">Red bars raise the score, green bars lower it (log-odds contribution).</p>';
+}
+const EXAMPLES={avg:{age:55,glucose:110,bmi:29,gender:1,married:1,urban:1,hyp:0,heart:0,work:'Private',smoke:'formerly smoked'},high:{age:72,glucose:210,bmi:33,gender:1,married:1,urban:1,hyp:1,heart:1,work:'Self-employed',smoke:'formerly smoked'}};
+document.querySelectorAll('[data-ex]').forEach(b=>b.addEventListener('click',()=>{
+  const e=EXAMPLES[b.dataset.ex];
+  $('age').value=e.age;$('glucose').value=e.glucose;$('bmi').value=e.bmi;$('work').value=e.work;$('smoke').value=e.smoke;
+  ['gender','married','urban','hyp','heart'].forEach(n=>{document.querySelector('input[name="'+n+'"][value="'+e[n]+'"]').checked=true});
+  if(validate())render(predict(build()));
+}));
+$('form').addEventListener('submit',e=>{e.preventDefault();if(validate())render(predict(build()))});
+$('reset').addEventListener('click',()=>{$('form').reset();['age','glucose','bmi'].forEach(k=>$('e-'+k).textContent='');$('out').hidden=true;$('empty').hidden=false});
+$('bmiToggle').addEventListener('click',()=>{const b=$('bmiBox');b.hidden=!b.hidden;$('bmiToggle').setAttribute('aria-expanded',String(!b.hidden))});
+$('bmiApply').addEventListener('click',()=>{const h=parseFloat($('h').value)/100,w=parseFloat($('w').value);if(h>0&&w>0)$('bmi').value=(w/(h*h)).toFixed(1)});
+$('theme').addEventListener('click',()=>{const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'});
+</script>
+</body>
+</html>
